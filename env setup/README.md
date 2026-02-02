@@ -40,10 +40,178 @@ Since I am on an M-series Mac, I must use an `arm64` (AArch64) version of Linux 
 Steps to fix:
 1. Force Shutdown the VM: click the **Power icon** in the top-left corner of the UTM window to force the VM to turn off.
 2. Eject the "CD" (Clear the Drive):
-       - Go to the main UTM library window where your VM is listed.
-       - Look at the Drive or **CD/DVD** section at the bottom right.
-       - Find the row showing the `ubuntu-24.04.3...iso` file.
-       - Click the dropdown menu next to it and select **Clear.**
-       - The status should now say "Empty".
+  - Go to the main UTM library window where your VM is listed.
+  - Look at the Drive or **CD/DVD** section at the bottom right.
+  - Find the row showing the `ubuntu-24.04.3...iso` file.
+  - Click the dropdown menu next to it and select **Clear.**
+  - The status should now say "Empty".
 3. Press "Play", it will now boot into the version of Ubuntu where you created.
 4. Login (eg. `linux-dev login:`), type your username and password.
+
+## 5. Mount Linux VM to Local
+In my recently setup, I selected `~/Documents/Work/Project/linux_kernel_moudle/coding` (yours may differ) as my shared folder. To see these files inside Linux, we should mount them:  
+1. In UTM interface, find **Settings** and click. Find **Sharing** tab, ensure the entry is pointing to the folder (eg. `.../coding` will show as `coding`).
+2. Ensure "Directory Share Mode" is set to **virtiofs**.
+3. Check the **QEMU** tablet in the left hand side, if exists `-device vhost-user-fs-pci,tag=share` like.
+  - `tag`: The tag stands for your local folder, default is `share`.
+  - Notice the portocol in the string, `vhost-user-fs-pci` or `virtio-9p-pci`. Differ in later setup codes.  
+4. Login to VM
+5. Install Packages:
+```
+sudo apt update
+sudo apt install -y virtiofsd attr
+```
+6. Create a mount piont:
+```
+mkdir ~/project
+```
+7. Mount the folder:
+```Bash
+# If your portocol is `vhost-user-fs-pci` or something else:
+sudo mount -t virtiofs share ~/project
+
+# If your portocol is `virtio-9p-pci`, which is an older version:
+sudo mount -t 9p -o trans=virtio share ~/project -oversion=9p2000.L
+```
+
+You will now see codes in the Linux VM checking by `ls ~/project`.
+
+## 6. Remote SSH on VS Code
+1. Open VS Code, download **"Remote-SSH"** Extension.
+2. `Cmd + Shift + P`, select `Remote-SSH: Connect to Host...`.
+3. Enter connection information (eg. `danny@192.168.64.2`)
+4. Choose `/User/zhou/.ssh/config` (something alike) as SSH Configuration
+5. After connected, open folder in VS code, choose `/home/danny/project` (choose yours)
+6. Install packages
+```
+sudo apt update
+sudo apt install -y build-essential linux-headers-$(uname -r)
+```
+
+### Trouble Shooting
+If you successfully mounted the local folder to Linux VM, but meeting problems that you cannot get the permission in VS Code. This issue can be that VS Code is logged in Linux, but does not get the permission from Linux Server.  
+
+Try this (it works for me):  
+1. Find your user ID and group ID (default=`1000`):
+```
+id
+```
+2. Edit the mount configuration:
+```
+sudo nano /etc/fstab
+
+# Add or modify the line to include `uid` and `gid`:
+share /home/danny/project 9p trans=virtio,version=9p2000.L,rw,uid=1000,gid=1000,_netdev 0 0
+```
+`Ctrl + O` + `Enter` + `Ctrl + W` to exit nano.  
+3. Remount:
+```
+sudo umount /home/danny/project
+sudo mount -a
+```
+4. SSH into your VM and change the ownership of the shared folder:
+```
+sudo chown -R danny:danny /home/danny/project
+```
+5. Reboot:
+```
+sudo reboot
+```
+
+# Hello World
+Test all our work sticks together (Linux VM + Remote SSH in VS Code). Now, we are able to modify files in VS Code, the files should be synchronous to local folder and Linux VM.  
+## 1. Create hello.c
+Create a `hello.c` file in VS Code, copy paste this:
+```C
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+// This function runs when the module is loaded
+static int __init hello_world_init(void)
+{
+    printk(KERN_INFO "Hello World! Your LKM environment is fully operational.\n");
+    return 0; // A non-zero return means the module failed to load
+}
+
+// This function runs when the module is removed
+static void __exit hello_world_exit(void)
+{
+    printk(KERN_INFO "Goodbye World! Module successfully removed.\n");
+}
+
+module_init(hello_world_init);
+module_exit(hello_world_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Danny Chou");
+MODULE_DESCRIPTION("A simple test module for a new dev environment.");
+```
+## 2. Create Makefile
+Touch a Makefile, copy paste this:
+```
+obj-m += hello.o
+
+all:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+```
+## 3. Make and Test
+1. Compile module: `make`
+2. Load module to kernel: `sudo insmod hello.ko`
+3. Remove module from kernel: `sudo rmmod hello`
+4. Check message in kernel: `sudo dmesg | grep` or `sudo dmesg | tail -5`
+5. Expected:
+```
+[  +9.245033] Hello World! Your LKM environment is fully operational.
+[Feb 2 19:49] Goodbye World! Module successfully removed.
+```
+
+### Pro Tip
+Open two terminals to watch kernel message in real time.  
+**Terminal 1:**
+```
+sudo dmesg -wH
+```
+**Terminal 2:**
+```
+sudo insmod hello.ko
+sudo rmmod hello
+sudo insmod hello.ko
+sudo rmmod hello
+```
+
+### Trouble Shooting
+If you have includePath error in `hello.c`, follow the steps:  
+1. Check your architechture: `uname -m` (eg. aarch64).
+2. In VS Code, press `Ctrl+Shift+P`, choose "C/C++: Edit Configurations (JSON)"
+3. Modify "includePath" ("defines" if needed):
+```
+ {
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/src/linux-headers-6.8.0-94-generic/include",
+                "/usr/src/linux-headers-6.8.0-94-generic/arch/arm64/include",
+                "/usr/src/linux-headers-6.8.0-94-generic/arch/arm64/include/generated",
+                "/usr/src/linux-headers-6.8.0-94/include",
+                "/usr/src/linux-headers-6.8.0-94/arch/arm64/include",
+                "/usr/include"
+            ],
+            "defines": [
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-arm64"
+        }
+    ],
+    "version": 4
+}
+```
