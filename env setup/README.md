@@ -52,7 +52,7 @@ Steps to fix:
 In my recently setup, I selected `~/Documents/Work/Project/linux_kernel_moudle/coding` (yours may differ) as my shared folder. To see these files inside Linux, we should mount them:  
 1. In UTM interface, find **Settings** and click. Find **Sharing** tab, ensure the entry is pointing to the folder (eg. `.../coding` will show as `coding`).
 2. Ensure "Directory Share Mode" is set to **virtiofs**.
-3. Check the **QEMU** tablet in the left hand side, if exists `-device vhost-user-fs-pci,tag=share` like.
+3. Check the **Argument** under **QEMU** tablet, in the left hand side. If exists `-device vhost-user-fs-pci,tag=share` like.
   - `tag`: The tag stands for your local folder, default is `share`.
   - Notice the portocol in the string, `vhost-user-fs-pci` or `virtio-9p-pci`. Differ in later setup codes.  
 4. Login to VM
