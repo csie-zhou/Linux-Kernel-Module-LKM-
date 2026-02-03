@@ -108,6 +108,7 @@ share /home/danny/project 9p trans=virtio,version=9p2000.L,rw,uid=1000,gid=1000,
 3. Remount:
 ```
 sudo umount /home/danny/project
+systemctl daemon-reload
 sudo mount -a
 ```
 4. SSH into your VM and change the ownership of the shared folder:
