@@ -186,7 +186,7 @@ sudo rmmod hello
 ### Trouble Shooting
 If you have includePath error in `hello.c`, follow the steps:  
 1. Check your architechture: `uname -m` (eg. aarch64).
-2. In VS Code, press `Ctrl+Shift+P`, choose "C/C++: Edit Configurations (JSON)"
+2. In VS Code, press `Cmd+Shift+P`, choose "C/C++: Edit Configurations (JSON)"
 3. Modify "includePath" ("defines" if needed):
 ```
  {
