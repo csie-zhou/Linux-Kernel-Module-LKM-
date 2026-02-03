@@ -79,10 +79,11 @@ You will now see codes in the Linux VM checking by `ls ~/project`.
 ## 6. Remote SSH on VS Code
 1. Open VS Code, download **"Remote-SSH"** Extension.
 2. `Cmd + Shift + P`, select `Remote-SSH: Connect to Host...`.
-3. Enter connection information (eg. `danny@192.168.64.2`)
-4. Choose `/User/zhou/.ssh/config` (something alike) as SSH Configuration
-5. After connected, open folder in VS code, choose `/home/danny/project` (choose yours)
-6. Install packages
+3. Find the IP address of your VM: `hostname -I` (should be like `192.168.64.XX`)
+4. Enter connection information: `username` + `ip addr` (eg. `danny@192.168.64.2`)
+5. Choose `/User/zhou/.ssh/config` (something alike) as SSH Configuration
+6. After connected, open folder in VS code, choose `/home/danny/project` (choose yours)
+7. Install packages
 ```
 sudo apt update
 sudo apt install -y build-essential linux-headers-$(uname -r)
