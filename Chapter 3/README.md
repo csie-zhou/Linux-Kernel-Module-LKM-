@@ -8,4 +8,13 @@ In this chapter, we will use `udev` (User Device Management) to create a node au
 ### 1. Add new Header
 Add these include files at the top of `my_bridge.c`:
 ```C
+#include <linux/device.h>   // Required for the device model
+#include <linux/err.h>      // Required for error handling (IS_ERR)
+
+static struct class *bridge_class = NULL;   // The device class
+static struct device *bridge_device = NULL; // The device object
+```
+### 2. Modify __init
+Modify the `__init` function to thos:
+```C
 ```
