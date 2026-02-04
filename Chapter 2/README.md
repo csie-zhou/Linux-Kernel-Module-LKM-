@@ -73,7 +73,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     if (uncopied == 0) {
         message[255] = '\0';
-        printk(KERN_INFO "Bridge: Accepted %zu characters from user\n", len);
+        printk(KERN_INFO "Bridge: Accepted %zu characters from user\n", datalen);
         return datalen;    
     } else {
         return -EFAULT;
